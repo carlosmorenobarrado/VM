@@ -1,0 +1,88 @@
+# --- 1. Secret para la contraseña de PostgreSQL ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-credentials
+type: Opaque
+stringData:
+  POSTGRES_USER: admincar
+  POSTGRES_PASSWORD: 1839%criptoDB 
+  POSTGRES_DB: criptodb
+
+---
+# --- 2. PersistentVolumeClaim (PVC) para los datos de PostgreSQL ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce # Significa que solo un nodo puede montar el volumen para lectura/escritura
+  resources:
+    requests:
+      storage: 5Gi # <--- Ajusta esto si necesitas más o menos espacio
+  storageClassName: standard # Minikube usa 'standard' por defecto para el provisioner de almacenamiento
+
+---
+# --- 3. Deployment para el servidor PostgreSQL ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-deployment
+  labels:
+    app: postgres
+spec:
+  replicas: 1 # Solo una instancia para la base de datos
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16-alpine
+        ports:
+        - containerPort: 5432
+        envFrom: # Carga las variables de entorno desde el Secret
+        - secretRef:
+            name: postgres-credentials
+        volumeMounts: # Monta el PVC para persistir los datos
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        readinessProbe: # Para que Kubernetes sepa cuándo está listo para recibir tráfico
+          exec:
+            command: ["pg_isready", "-U", "admincar", "-d", "criptodb"]
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 5
+        livenessProbe: # Para que Kubernetes sepa cuándo la app está funcionando (o muerta)
+          exec:
+            command: ["pg_isready", "-U", "admincar", "-d", "criptodb"]
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      volumes: # Define el volumen que usará el contenedor
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+
+---
+# --- 4. Service para exponer PostgreSQL dentro del clúster ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  labels:
+    app: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+    - protocol: TCP
+      port: 5432 # Puerto del servicio
+      targetPort: 5432 # Puerto del contenedor
