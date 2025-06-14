@@ -1,0 +1,11 @@
+# Let NetworkManager manage all devices on this system
+network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    enp0s3: # <-- Tu interfaz de red
+      dhcp4: no  # <--- Deshabilita DHCP para IPv4
+      addresses: [10.0.2.100/24] # <--- Tu nueva IP estática y la máscara de subred
+      gateway4: 10.0.2.2       # <--- La IP de tu router virtual de NAT
+      nameservers:
+        addresses: [10.0.2.2, 8.8.8.8] # <--- Tu DNS principal (router virtual) y uno público de Google

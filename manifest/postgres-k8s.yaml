@@ -17,14 +17,14 @@ metadata:
   name: postgres-pvc
 spec:
   accessModes:
-    - ReadWriteOnce # Significa que solo un nodo puede montar el volumen para lectura/escritura
+    - ReadWriteOnce
   resources:
     requests:
-      storage: 5Gi # <--- Ajusta esto si necesitas más o menos espacio
-  storageClassName: standard # Minikube usa 'standard' por defecto para el provisioner de almacenamiento
+      storage: 10Gi # <--- Ajusta esto si necesitas más o menos espacio
+  storageClassName: standard # Minikube usa 'standard' por defecto
 
 ---
-# --- 3. Deployment para el servidor PostgreSQL ---
+# --- 3. Deployment para el servidor PostgreSQL (con ConfigMap para configuración) ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -32,7 +32,7 @@ metadata:
   labels:
     app: postgres
 spec:
-  replicas: 1 # Solo una instancia para la base de datos
+  replicas: 1
   selector:
     matchLabels:
       app: postgres
@@ -46,12 +46,18 @@ spec:
         image: postgres:16-alpine
         ports:
         - containerPort: 5432
-        envFrom: # Carga las variables de entorno desde el Secret
+        envFrom:
         - secretRef:
             name: postgres-credentials
-        volumeMounts: # Monta el PVC para persistir los datos
+        volumeMounts: # <--- MONTAR VOLÚMENES DEL PVC Y CONFIGMAP
         - name: postgres-storage
-          mountPath: /var/lib/postgresql/data
+          mountPath: /var/lib/postgresql/data # Aquí se guardan los datos de la DB
+        - name: postgres-config-volume # Montaje del ConfigMap para los archivos de configuración
+          mountPath: /etc/postgresql/postgresql.conf # Monta postgresql.conf
+          subPath: postgresql.conf # Especifica que es el archivo 'postgresql.conf' del ConfigMap
+        - name: postgres-config-volume # Montaje del ConfigMap para pg_hba.conf
+          mountPath: /etc/postgresql/pg_hba.conf # Monta pg_hba.conf
+          subPath: pg_hba.conf # Especifica que es el archivo 'pg_hba.conf' del ConfigMap
         readinessProbe: # Para que Kubernetes sepa cuándo está listo para recibir tráfico
           exec:
             command: ["pg_isready", "-U", "admincar", "-d", "criptodb"]
@@ -66,13 +72,21 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
-      volumes: # Define el volumen que usará el contenedor
+      volumes: # <--- DEFINICIÓN DE LOS VOLÚMENES UTILIZADOS
       - name: postgres-storage
         persistentVolumeClaim:
           claimName: postgres-pvc
+      - name: postgres-config-volume # Definición del volumen que proviene del ConfigMap
+        configMap:
+          name: postgres-config # Nombre del ConfigMap que debes crear
+          items:
+            - key: postgresql.conf
+              path: postgresql.conf
+            - key: pg_hba.conf
+              path: pg_hba.conf
 
 ---
-# --- 4. Service para exponer PostgreSQL dentro del clúster ---
+# --- 4. Service para exponer PostgreSQL dentro del clúster (ClusterIP) ---
 apiVersion: v1
 kind: Service
 metadata:
