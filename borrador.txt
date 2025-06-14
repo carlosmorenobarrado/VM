@@ -1,3 +1,3 @@
 
 kubectl port-forward argocd-server-66ff958769-tgr6g 8080:8080 -n argocd
-kubectl port-forward postgres-deployment-58764db864-n2969 5432:5432
+kubectl port-forward postgres-deployment-75fd74cfd-mnpzc 5432:5432

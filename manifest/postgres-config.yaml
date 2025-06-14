@@ -29,11 +29,11 @@ data:
     # TYPE  DATABASE        USER            ADDRESS                 METHOD
     # Regla por defecto para localhost (dentro del pod)
     local   all             all                                     trust
-    host    all             all             127.0.0.1/32            scram-sha-256
+    host    all             all             127.0.0.1/32            md5
     host    all             all             ::1/128                 scram-sha-256
 
     # Permite conexiones desde cualquier IP interna de K8s sin SSL (para simplificar)
     host    all             all             0.0.0.0/0               md5
 
     # OPCIONAL: Si quisieras requerir SSL para alguna conexión, sería así:
-    # hostssl criptodb        admincar        0.0.0.0/0               md5
+    hostssl criptodb        admincar        0.0.0.0/0               md5
