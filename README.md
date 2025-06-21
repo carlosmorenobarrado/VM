@@ -1,3 +1,11 @@
+# Restart app
+minikube start --driver=docker
+kubectl get pods -n argocd 
+minikube service argocd-server -n argocd
+admin
+yREDJrgXqKjsCOGZ
+kubectl port-forward --address 192.168.1.237 postgres-deployment-75fd74cfd-mnpzc 5432:5432
+
 # VM para deploy de postgre en local y procesos de carga desde telegram
 
 Preparación de la VM de Ubuntu (en VirtualBox)
@@ -67,8 +75,13 @@ Haz clic en CREATE. Espera a que esté Healthy.
 
 # Derivar puertos para conectar argocd con el cluster
 
+EL bueno:
+
+kubectl port-forward --address 192.168.1.237 postgres-deployment-75fd74cfd-mnpzc 5432:5432
+
+Otros:
 kubectl port-forward argocd-server-66ff958769-tgr6g 8080:8080 -n argocd
-kubectl port-forward postgres-deployment-58764db864-n2969 5432:5432
+kubectl port-forward postgres-deployment-75fd74cfd-mnpzc 5432:5432
 
 # Configurar el fichero postgresql.conf y pg_hba.conf para permitir conexiones externas
 
